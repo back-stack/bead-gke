@@ -97,18 +97,18 @@ parameters:
 # Define the steps that should execute when the bundle is installed
 install:
   - exec:
-    description: "Install Hello World"
-    command: ./helpers.sh
-    arguments:
-      - install
+      description: "Install Hello World"
+      command: ./helpers.sh
+      arguments:
+        - install
 
 # Define the steps that should execute when the bundle is upgraded
 upgrade:
   - exec:
-    description: "World 2.0"
-    command: ./helpers.sh
-    arguments:
-      - upgrade
+      description: "World 2.0"
+      command: ./helpers.sh
+      arguments:
+        - upgrade
 
 # Define the steps that should execute when the bundle is uninstalled
 uninstall:
