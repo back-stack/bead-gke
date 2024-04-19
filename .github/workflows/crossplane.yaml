@@ -1,0 +1,53 @@
+name: Build BACK Stack Bead Crossplane PKG
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'crossplane/**'
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  CROSSPLANE_VERSION: v1.14.4
+
+jobs:
+  crossplane:
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Package Tag
+        run: echo "VERSION_TAG=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+        id: tag
+
+      - name: Log into ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install crossplane CLI
+        run: |
+          curl -Lo /usr/local/bin/crossplane "https://releases.crossplane.io/stable/${{ env.CROSSPLANE_VERSION }}/bin/linux_amd64/crank" \
+          && chmod +x /usr/local/bin/crossplane
+
+      - name: Build Configuration Package
+        run: |
+          crossplane xpkg build --package-root=crossplane/ -o crossplane/backstack.xpkg
+
+      - name: Push ${{ steps.tag.outputs.VERSION_TAG }} & latest
+        run: |
+          crossplane xpkg push -f crossplane/backstack.xpkg ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-crossplane:v0.1.0_${{ steps.tag.outputs.VERSION_TAG }}
+          crossplane xpkg push -f crossplane/backstack.xpkg ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-crossplane:latest

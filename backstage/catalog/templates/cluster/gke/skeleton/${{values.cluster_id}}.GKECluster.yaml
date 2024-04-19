@@ -1,0 +1,20 @@
+apiVersion: backstack.dev/v1alpha1
+kind: GKECluster
+metadata:
+  name: spoke-${{ values.cluster_id }}
+  namespace: default
+spec:
+  parameters:
+    id: spoke-${{ values.cluster_id }}
+    region: ${{ values.region }}
+    version: ${{ values.version }}
+    nodes:
+      count: ${{ values.nodes_count }}
+      instanceType: ${{ values.nodes_instance_type }}
+    kyverno_custom_repository: ${{ values.custom_kyverno_policies }}
+  writeConnectionSecretToRef:
+    name: spoke-${{ values.cluster_id }}-kubeconfig
+  publishConnectionDetailsTo:
+    name: spoke-${{ values.cluster_id }}/spoke-${{ values.cluster_id }}-kubeconfig
+    configRef:
+      name: vault

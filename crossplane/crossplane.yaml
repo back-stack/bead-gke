@@ -1,0 +1,20 @@
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  # TODO: rename
+  name: bead-gke
+  annotations:
+    meta.crossplane.io/maintainer: BACK Stack Bead providing GKE provisioning <https://github.com/back-stack/bead-gke>
+    meta.crossplane.io/source: github.com/back-stack/bead-gke
+    meta.crossplane.io/license: Apache-2.0
+    meta.crossplane.io/description: This configuration provides apis for the GKE Bead for the BACK Stack
+spec:
+  crossplane:
+    version: ">=v1.14.0-0"
+  dependsOn:
+    - provider: xpkg.upbound.io/upbound/provider-gcp-container
+      version: ">=v1.0.2"
+    - provider: xpkg.upbound.io/upbound/provider-gcp-compute
+      version: ">=v1.0.2"
+    - provider: xpkg.upbound.io/upbound/provider-gcp-cloudplatform
+      version: ">=v1.0.2"

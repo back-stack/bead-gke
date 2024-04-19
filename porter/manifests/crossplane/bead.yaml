@@ -1,0 +1,10 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: bead-gke
+spec:
+  package: ${REGISTRY}/${CROSSPLANE_IMAGE}:${CROSSPLANE_IMAGE_TAG}
+  skipDependencyResolution: true
+  packagePullPolicy: Always
+  packagePullSecrets:
+    - name: registry-credentials

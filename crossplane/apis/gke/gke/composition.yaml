@@ -1,0 +1,103 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xgke.gcp.backstack.dev
+  labels:
+    provider: gcp
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: gcp.backstack.dev/v1alpha1
+    kind: XGKE
+  patchSets:
+  - name: region
+    patches:
+    - type: FromCompositeFieldPath
+      fromFieldPath: spec.parameters.region
+      toFieldPath: spec.forProvider.location
+  resources:
+  - name: kubernetes-cluster
+    base:
+      apiVersion: container.gcp.upbound.io/v1beta1
+      kind: KubernetesCluster
+      spec:
+        forProvider:
+          defaultNodePool:
+          - name: default
+          identity:
+          - type: "SystemAssigned"
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.parameters.version
+      toFieldPath: spec.forProvider.kubernetesVersion
+    - fromFieldPath: spec.parameters.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-gke"
+    - fromFieldPath: spec.parameters.id
+      toFieldPath: spec.forProvider.resourceGroupNameSelector.matchLabels[gcp.backstack.dev/network-id]
+    - fromFieldPath: spec.parameters.id
+      toFieldPath: spec.forProvider.defaultNodePool[0].vnetSubnetIdSelector.matchLabels[gcp.backstack.dev/network-id]
+    - fromFieldPath: spec.parameters.id
+      toFieldPath: spec.forProvider.dnsPrefix
+    - fromFieldPath: spec.parameters.nodes.instanceType
+      toFieldPath: spec.forProvider.defaultNodePool[0].vmSize
+    - fromFieldPath: spec.parameters.nodes.count
+      toFieldPath: spec.forProvider.defaultNodePool[0].nodeCount
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.writeConnectionSecretToRef.namespace
+    - fromFieldPath: metadata.uid
+      toFieldPath: spec.writeConnectionSecretToRef.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-gkecluster"
+    connectionDetails:
+    - fromConnectionSecretKey: kubeconfig
+  - name: providerConfig-helm
+    base:
+      apiVersion: helm.crossplane.io/v1beta1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+    patches:
+    - fromFieldPath: spec.parameters.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: metadata.uid
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-gkecluster"
+    readinessChecks:
+    - type: None
+  - name: providerConfig-kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+    patches:
+    - fromFieldPath: spec.parameters.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: metadata.uid
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-gkecluster"
+    readinessChecks:
+    - type: None

@@ -1,0 +1,9 @@
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  # TODO: rename
+  name: bead-gke
+  description: A BACK Stack Bead providing GKE cluster provisioning
+spec:
+  targets:
+    - ./catalog/templates/cluster/gke/template.yaml
