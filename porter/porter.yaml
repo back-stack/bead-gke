@@ -17,9 +17,6 @@ mixins:
   - docker
   - helm3:
       clientVersion: v3.14.3 # CHANGEME
-      repositories:
-        kyverno:
-          url: https://kyverno.github.io/kyverno/
   # BUG: there is a mixin bug with the helm plugin which has a hardcoded version of kubectl
   # need to install the kube mixin AFTER the helm3 one in order to leave the image with a semi
   # working kubectl. There is still a layer with kubectl of older persuasion in the image though
