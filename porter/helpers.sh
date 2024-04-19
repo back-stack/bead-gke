@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Make sure we are able to connect to a cluster
+ensure_kubernetes() {
+  kubectl get ns >/dev/null
+}
+
 # Use ENVSUBST to populate template files. It appends -envsub to the filename
 # when applying/using the file post passing to this function, make sure to use the new filename
 run_envsubst_on_file() {

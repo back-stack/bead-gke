@@ -7,7 +7,7 @@
 schemaType: Bundle
 schemaVersion: 1.0.1
 registry: "ghcr.io"
-name: backstack-porter-bead
+name: backstack-porter-bead-gke
 description: "BACK Stack Bead for GKE porter bundle"
 dockerfile: template.Dockerfile
 
@@ -15,11 +15,6 @@ dockerfile: template.Dockerfile
 mixins:
   - exec
   - docker
-  - helm3:
-      clientVersion: v3.14.3 # CHANGEME
-  # BUG: there is a mixin bug with the helm plugin which has a hardcoded version of kubectl
-  # need to install the kube mixin AFTER the helm3 one in order to leave the image with a semi
-  # working kubectl. There is still a layer with kubectl of older persuasion in the image though
   - kubernetes:
       clientVersion: v1.29.1 # CHANGEME
 
@@ -47,6 +42,7 @@ credentials:
     applyTo:
       - install
   - name: kubeconfig
+    env: K8S_CFG_INTERNAL
     path: /home/nonroot/.kube/config
     description: Local Kubeconfig file to use for HUB installation. Skip if using KinD
     required: false
@@ -96,11 +92,64 @@ parameters:
 
 # Define the steps that should execute when the bundle is installed
 install:
+  # Kubernetes
   - exec:
-      description: "Install Hello World"
+      description: "Ensure Kubernetes Connection"
       command: ./helpers.sh
       arguments:
-        - install
+        - ensure_kubernetes
+  # Crossplane
+  - exec:
+      description: "Create Crossplane Registry Secret"
+      command: ./helpers.sh
+      # TODO: https://github.com/nirmata/backstack-internal/issues/43 document the need for registry permissions for the Github Token
+      arguments:
+        - create_registry_secret
+        - registry-credentials-bead
+        - crossplane-system
+  - kubernetes:
+      description: "Create Crossplane Providers"
+      manifests:
+        - ./manifests/crossplane/providers.yaml
+  - exec:
+      description: "Wait for Crossplane Providers to become healthy"
+      command: ./helpers.sh
+      arguments:
+        - validate_upbound_providers
+  - exec:
+      description: "Template Crossplane ProvidersConfig"
+      command: ./helpers.sh
+      arguments:
+        - run_envsubst_on_file
+        - ./manifests/crossplane/provider-configs.yaml
+  - kubernetes:
+      description: "Configure Crossplane ProvidersConfig"
+      manifests:
+        - ./manifests/crossplane/provider-configs.yaml-envsub
+  - exec:
+      description: "Template Crossplane BACK Stack Configuration"
+      command: ./helpers.sh
+      arguments:
+        - run_envsubst_on_file
+        - ./manifests/crossplane/bead.yaml
+  - kubernetes:
+      description: "Install Crossplane BACK Stack Configuration"
+      manifests:
+        - ./manifests/crossplane/bead.yaml-envsub
+  - exec:
+      description: "Create Crossplane Cloud Credential Secrets"
+      command: ./helpers.sh
+      arguments:
+        - create_credentials_secret
+        - gcp-secret
+        - crossplane-system
+
+  # Post install validations
+  - exec:
+      description: "Validate BACK Stack Configuration & Providers"
+      command: ./helpers.sh
+      arguments:
+        - validate_bead_configuration
 
 # Define the steps that should execute when the bundle is upgraded
 upgrade:

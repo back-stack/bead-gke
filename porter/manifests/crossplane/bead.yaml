@@ -7,4 +7,4 @@ spec:
   skipDependencyResolution: true
   packagePullPolicy: Always
   packagePullSecrets:
-    - name: registry-credentials
+    - name: registry-credentials-bead
